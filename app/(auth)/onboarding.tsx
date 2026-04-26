@@ -103,7 +103,7 @@ export default function WelcomeScreen() {
         >
           <Button
             onPress={handleContinue}
-            className="w-full h-15 rounded-2xl shadow-xl shadow-primary/30 bg-primary"
+            className="w-full rounded-2xl shadow-xl shadow-primary/30 bg-primary"
           >
             <Text className="text-primary-foreground text-[19px] font-inter-semibold lowercase">
               continue
