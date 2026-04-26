@@ -73,6 +73,7 @@ export default function LoginScreen() {
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 selectionColor="#FF6B00"
+                maxLength={11}
               />
             </View>
             
@@ -90,7 +91,9 @@ export default function LoginScreen() {
               className="w-full h-15 rounded-2xl shadow-xl shadow-primary/30 bg-primary"
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="white" />
+                <View style={{ height: 27, width: 27, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="white" />
+                </View>
               ) : (
                 <Text className="text-white text-[18px] font-inter-semibold lowercase">
                   continue
