@@ -176,7 +176,10 @@ export default function NewChannelScreen() {
 
     setIsCreating(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.replace(`/chat/${newChannelId}` as any);
+
+    // Clear the compose stack and land in the new channel
+    router.dismissAll();
+    router.push(`/chat/${newChannelId}` as any);
   };
 
   const headerTitle = {

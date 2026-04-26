@@ -156,7 +156,7 @@ export default function NewChatScreen() {
       },
       ...prev,
     ]);
-    router.push(`/chat/${newChatId}` as any);
+    router.replace(`/chat/${newChatId}` as any);
   };
 
   const sections = useMemo(() => {

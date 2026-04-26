@@ -19,6 +19,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
+    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       router.push({
@@ -69,7 +70,6 @@ export default function LoginScreen() {
                 placeholder="000 000 0000"
                 placeholderTextColor="#A1A1AA"
                 keyboardType="phone-pad"
-                autoFocus
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 selectionColor="#FF6B00"

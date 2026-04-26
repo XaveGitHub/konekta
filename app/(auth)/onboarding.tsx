@@ -10,6 +10,7 @@ import Animated, {
   withRepeat, 
   withTiming, 
   withSequence,
+  interpolate,
 } from 'react-native-reanimated';
 import { Button } from '../../components/ui/button';
 import { setOnboarded } from '../../lib/auth-mock';
@@ -45,7 +46,7 @@ export default function WelcomeScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      {/* Ultra-Minimal Background */}
+      {/* Ultra-Minimal Background Accent */}
       <View className="absolute top-[-50px] left-[-50px] size-[300px] rounded-full bg-primary/5 blur-[100px]" />
 
       <View className="flex-1" />
@@ -66,7 +67,8 @@ export default function WelcomeScreen() {
         </View>
         
         <View className="items-center">
-          <Text className="text-[62px] font-inter-bold text-foreground tracking-tighter leading-[62px] lowercase">
+          {/* Forced text color to prevent white-on-white on iPhone Dark Mode */}
+          <Text className="text-[62px] font-inter-bold text-[#121212] tracking-tighter leading-[62px] lowercase">
             konekta
           </Text>
           <Text className="text-[14px] font-inter-medium text-primary mt-1 lowercase opacity-50 tracking-[0.5px]">
@@ -88,7 +90,7 @@ export default function WelcomeScreen() {
            <View 
              style={{ width: width * 2.2, height: 420, borderRadius: 200, backgroundColor: '#FF6B00', position: 'absolute', bottom: -180, right: -width * 0.6, opacity: 0.25, transform: [{ rotate: '-8deg' }] }} 
            />
-           {/* Front Main Slope (The most aggressive) */}
+           {/* Front Main Slope */}
            <View 
              style={{ width: width * 2.5, height: 450, borderRadius: 220, backgroundColor: '#FF6B00', position: 'absolute', bottom: -240, left: -width * 0.3, transform: [{ rotate: '-4deg' }] }} 
            />

@@ -255,8 +255,9 @@ export default function NewGroupScreen() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Navigate to the new group chat
-    router.replace(`/chat/${newGroupId}` as any);
+    // Clear the compose stack and land in the new chat
+    router.dismissAll();
+    router.push(`/chat/${newGroupId}` as any);
   };
 
   const avatarInitials = groupName.trim()
