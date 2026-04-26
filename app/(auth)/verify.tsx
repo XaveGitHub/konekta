@@ -3,7 +3,7 @@ import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pres
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Button } from '../../components/ui/button';
 import { setOnboarded, setLoggedIn } from '../../lib/auth-mock';
@@ -66,30 +66,27 @@ export default function VerifyScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
+      className="flex-1 bg-background"
     >
       <ScrollView 
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ paddingTop: insets.top + 12 }} className="px-6 flex-1">
+        <View style={{ paddingTop: insets.top + 20 }} className="px-6 flex-1">
           {/* System Back Button */}
-          <View className="flex-row items-center -ml-2 mb-4">
-            <Pressable 
-              onPress={() => router.back()}
-              className="p-2"
-            >
-              <Ionicons name="chevron-back" size={28} color="#FF6B00" />
-            </Pressable>
-          </View>
+          <Pressable 
+            onPress={() => router.back()}
+            className="size-10 items-center justify-center rounded-full bg-muted/20"
+          >
+            <ChevronLeft size={24} color="#FF6B00" />
+          </Pressable>
 
-          <View className="mt-8 items-center">
+          <View className="mt-12 items-center">
             <Image 
               source={require('../../assets/images/logo.png')}
-              style={{ width: 100, height: 100 }}
-              className="rounded-3xl shadow-xl shadow-primary/10"
+              className="size-24 rounded-3xl shadow-xl"
             />
-            <Text className="mt-6 text-[36px] font-inter-bold text-foreground text-center lowercase tracking-tighter">
+            <Text className="mt-8 text-[34px] font-inter-bold text-foreground text-center lowercase tracking-tighter">
               verify it's you
             </Text>
             <Text className="mt-2 text-[15px] font-inter-medium text-muted-foreground text-center lowercase opacity-50">
@@ -103,7 +100,6 @@ export default function VerifyScreen() {
               {renderOtpBoxes()}
             </View>
 
-            {/* Hidden Input for Keyboard */}
             <TextInput
               ref={inputRef}
               value={code}
@@ -120,7 +116,6 @@ export default function VerifyScreen() {
               autoFocus
             />
             
-            {/* Clerk-Style Indigo Resend Timer */}
             <View className="mt-10 items-center">
               <Pressable 
                 disabled={resendTimer > 0}
@@ -141,18 +136,18 @@ export default function VerifyScreen() {
 
           <View className="flex-1" />
 
-          <View style={{ paddingBottom: insets.bottom + 60 }} className="mt-8">
+          <View style={{ paddingBottom: insets.bottom + 40 }} className="mt-8">
             <Button
               onPress={() => handleVerify()}
               disabled={code.length < 6 || isLoading}
-              className="w-full h-15 rounded-2xl shadow-xl shadow-primary/30 bg-primary"
+              className="w-full rounded-2xl bg-primary"
             >
               {isLoading ? (
                 <View style={{ height: 27, width: 27, justifyContent: 'center', alignItems: 'center' }}>
                   <ActivityIndicator size="small" color="white" />
                 </View>
               ) : (
-                <Text className="text-white text-[18px] font-inter-semibold lowercase">
+                <Text className="text-primary-foreground text-lg font-inter-bold lowercase">
                   verify
                 </Text>
               )}

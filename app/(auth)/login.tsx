@@ -3,7 +3,7 @@ import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pres
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Button } from '../../components/ui/button';
 
@@ -19,7 +19,6 @@ export default function LoginScreen() {
     setIsLoading(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       router.push({
@@ -32,44 +31,45 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
+      className="flex-1 bg-background"
     >
       <ScrollView 
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ paddingTop: insets.top + 12 }} className="px-6 flex-1">
+        <View style={{ paddingTop: insets.top + 20 }} className="px-6 flex-1">
           {/* System Back Button */}
-          <View className="flex-row items-center -ml-2 mb-4">
-            <Pressable 
-              onPress={() => router.back()}
-              className="p-2"
-            >
-              <Ionicons name="chevron-back" size={28} color="#FF6B00" />
-            </Pressable>
-          </View>
+          <Pressable 
+            onPress={() => router.back()}
+            className="size-10 items-center justify-center rounded-full bg-muted/20"
+          >
+            <ChevronLeft size={24} color="#FF6B00" />
+          </Pressable>
 
-          <View className="mt-8 items-center">
+          <View className="mt-12 items-center">
             <Image 
               source={require('../../assets/images/logo.png')}
-              style={{ width: 100, height: 100 }}
-              className="rounded-3xl shadow-xl shadow-primary/10"
+              className="size-24 rounded-3xl shadow-xl"
             />
-            <Text className="mt-6 text-[36px] font-inter-bold text-foreground text-center lowercase tracking-tighter">
+            <Text className="mt-8 text-[34px] font-inter-bold text-foreground text-center lowercase tracking-tighter">
               welcome to <Text className="text-primary">konekta</Text>
+            </Text>
+            <Text className="mt-2 text-[17px] font-inter-medium text-muted-foreground text-center lowercase">
+              enter your mobile number to get started
             </Text>
           </View>
 
           <View className="mt-12">
-            <View className="flex-row items-center bg-muted/10 h-16 rounded-2xl px-5 border border-border/10 focus-within:border-primary/50">
-              <Text className="text-[18px] font-inter-bold text-primary mr-3">
+            <View className="flex-row items-center bg-muted/20 h-16 rounded-2xl px-4 border border-border/10 focus-within:border-primary">
+              <Text className="text-lg font-inter-semibold text-foreground pr-3 border-r border-border/20">
                 +63
               </Text>
               <TextInput
-                className="flex-1 h-full text-[18px] font-inter-semibold text-foreground"
+                className="flex-1 h-full ml-3 text-lg font-inter-medium text-foreground"
                 placeholder="000 000 0000"
                 placeholderTextColor="#A1A1AA"
                 keyboardType="phone-pad"
+                autoFocus
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 selectionColor="#FF6B00"
@@ -77,25 +77,25 @@ export default function LoginScreen() {
               />
             </View>
             
-            <Text className="mt-6 text-[13px] text-muted-foreground/50 text-center px-4 leading-5 lowercase font-inter-medium">
+            <Text className="mt-4 text-[13px] text-muted-foreground text-center px-4 leading-5 lowercase">
               {"by continuing, you agree to our terms of service and privacy policy. we'll send a verification code via sms."}
             </Text>
           </View>
 
           <View className="flex-1" />
 
-          <View style={{ paddingBottom: insets.bottom + 60 }} className="mt-8">
+          <View style={{ paddingBottom: insets.bottom + 40 }} className="mt-8">
             <Button
               onPress={handleSendCode}
               disabled={phoneNumber.length < 8 || isLoading}
-              className="w-full h-15 rounded-2xl shadow-xl shadow-primary/30 bg-primary"
+              className="w-full rounded-2xl bg-primary"
             >
               {isLoading ? (
                 <View style={{ height: 27, width: 27, justifyContent: 'center', alignItems: 'center' }}>
                   <ActivityIndicator size="small" color="white" />
                 </View>
               ) : (
-                <Text className="text-white text-[18px] font-inter-semibold lowercase">
+                <Text className="text-primary-foreground text-lg font-inter-bold lowercase">
                   continue
                 </Text>
               )}
