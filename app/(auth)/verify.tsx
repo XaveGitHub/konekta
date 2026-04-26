@@ -35,6 +35,8 @@ export default function VerifyScreen() {
       setIsLoading(false);
       try {
         await SecureStore.setItemAsync('konekta_mock_token', 'logged_in');
+        setOnboarded(true);
+        setLoggedIn(true);
       } catch (e) {
         console.log('SecureStore error:', e);
       }

@@ -8,7 +8,7 @@ import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from 'expo-splash-screen';
-// import * as SecureStore from 'expo-secure-store'; // Uncomment after installing: npx expo install expo-secure-store
+import * as SecureStore from 'expo-secure-store';
 import { 
   useFonts,
   Inter_400Regular,
@@ -25,38 +25,45 @@ import { ChatProvider } from "@/context/ChatContext";
 import { ContactsProvider } from "@/context/ContactsContext";
 import { NAV_THEME, ROOT_WINDOW_BACKGROUND } from "@/lib/theme";
 import { useRouter, useSegments } from "expo-router";
+import { AUTH_MOCK, setLoggedIn, setOnboarded } from "../lib/auth-mock";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-
-import { AUTH_MOCK } from "../lib/auth-mock";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(AUTH_MOCK.isLoggedIn);
-  const [isOnboarded, setIsOnboarded] = useState(AUTH_MOCK.isOnboarded);
 
+  // Sync SecureStore on Mount
   useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoggedIn(AUTH_MOCK.isLoggedIn);
-      setIsOnboarded(AUTH_MOCK.isOnboarded);
-      setIsReady(true);
+    const initAuth = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('konekta_mock_token');
+        if (token === 'logged_in') {
+          setOnboarded(true);
+          setLoggedIn(true);
+        }
+      } catch (e) {
+        console.log('Auth Init Error:', e);
+      } finally {
+        setIsReady(true);
+      }
     };
-    checkAuth();
-  }, [segments]);
+    initAuth();
+  }, []);
 
   useEffect(() => {
     if (!isReady) return;
 
     const inAuthGroup = segments[0] === "(auth)";
     const onOnboarding = segments[1] === "onboarding";
+    const inTabs = segments[0] === "(tabs)";
 
-    // Use AUTH_MOCK directly here to avoid React state sync lag
     const effectiveOnboarded = AUTH_MOCK.isOnboarded;
     const effectiveLoggedIn = AUTH_MOCK.isLoggedIn;
 
+    // PROTECTION LOGIC
     if (!effectiveOnboarded && !onOnboarding) {
       router.replace("/(auth)/onboarding");
     } else if (effectiveOnboarded && !effectiveLoggedIn && !inAuthGroup) {
@@ -64,7 +71,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     } else if (effectiveLoggedIn && inAuthGroup) {
       router.replace("/(tabs)/chats");
     }
-  }, [isLoggedIn, isOnboarded, isReady, segments]);
+  }, [isReady, segments, AUTH_MOCK.isLoggedIn, AUTH_MOCK.isOnboarded]);
+
+  if (!isReady) return null;
 
   return <>{children}</>;
 }
@@ -90,7 +99,6 @@ function RootLayoutInner() {
                     screenOptions={{
                       headerShown: false,
                       contentStyle: { backgroundColor: rootBg },
-                      // Match native messaging apps: horizontal push (not full-screen fade).
                       ...Platform.select({
                         ios: {
                           animation: "simple_push" as const,
