@@ -26,7 +26,7 @@ One place to see **what the app is**, **what exists in the repo**, **how we stru
 - **Expo Router** (`app/`) for navigation  
 - **NativeWind** for styling  
 - **No real backend yet** — chats, messages, contacts, and calls are driven by **in-app fake data** and **React state** (see §2)  
-- Later targets: **Clerk** (auth), **Convex** (realtime + persistence), real calling — **not wired in screens yet**  
+- **Target stack (not wired in screens yet):** **Clerk** (auth), **Neon** (Postgres), **Drizzle** (schema/migrations), **PowerSync** (sync to on-device **SQLite**), real calling/media backends — chosen over Convex for a **SQL-first, portable** long-term architecture.  
 - **Implementation preview:** composite message cursor, remote-config ad caps, entitlement grace UX, v1 limitations, and **Phase 1 QA checklist** → **[§8](#8-target-sync--policy-preview)**
 
 **Product feel:** iOS-inspired, readable; glass/blur mainly on headers, tabs, sheets — **not** on message bubbles.
@@ -43,7 +43,7 @@ One place to see **what the app is**, **what exists in the repo**, **how we stru
 - **Runtime changes** (send message, archive, mute, edit profile) live in **React state**, mostly inside **`ChatContext`** and **`ContactsContext`** — still “fake,” but interactive.  
 - Nothing hits a real API, database, or auth provider in production code paths.
 
-**Why we talk about `lib/mocks` later:** Today some files import `MOCK_MESSAGES` or `mockChats` **directly**. The goal is to move all **read/write of pretend data** behind a small module (`lib/mocks/*`) so that when you add Convex, you replace **one layer**, not twenty imports. See §6.
+**Why we talk about `lib/mocks` later:** Today some files import `MOCK_MESSAGES` or `mockChats` **directly**. The goal is to move all **read/write of pretend data** behind a small module (`lib/mocks/*`) so that when you add the **real API + sync** layer, you replace **one boundary**, not twenty imports. See §6.
 
 **Not mock:** UI components, navigation, gestures, themes — those are real app code.
 
@@ -62,6 +62,7 @@ One place to see **what the app is**, **what exists in the repo**, **how we stru
 | Feedback | expo-haptics |
 | Images | expo-image |
 | Primitives | `@rn-primitives/*`, `components/ui/` |
+| **Planned server & sync** (see §1) | **Neon** (managed Postgres) · **Drizzle** · **Clerk** · **PowerSync** (incremental sync to app **SQLite**); not integrated yet |
 
 **In `package.json` but optional / not central to architecture doc:** expo-file-system, expo-av, expo-sqlite, expo-camera, etc. — use when a feature needs them; no global requirement listed here.
 
@@ -137,13 +138,13 @@ Examples: `theme.ts`, `utils.ts`, `tabScreenLayout.ts`, `chatListPreview.ts`, `m
    - **`ChatContext` / `ContactsContext`** initialize from `bootstrapChats()`, `bootstrapMessagesByChatId()`, `bootstrapContacts()`.  
    - **Avoid** `MOCK_*` / `mockChats` in `app/` and `components/` — use context or `lib/mocks/*`. Type-only imports from `constants/*` for types not re-exported from mocks are fine.  
 6. **Styling** — NativeWind + tokens; support dark mode; keep bubbles high-contrast.  
-7. **Phase guard** — Do not integrate Clerk, Convex, paid SDKs, or real VoIP backends into production navigation paths until the project explicitly moves to that phase.
+7. **Phase guard** — Do not integrate **Clerk**, **Neon/PowerSync**, **paid** SDKs, or real VoIP backends into production navigation paths until the project explicitly moves to that phase.
 
 ---
 
 ## 6. `lib/mocks` checklist
 
-**Goal:** One boundary for “pretend backend” so Convex (or any API) plugs in behind the same shapes.
+**Goal:** One boundary for “pretend backend” so the **Postgres + sync** layer (or any API) plugs in behind the same shapes.
 
 ### Done (baseline)
 
@@ -154,7 +155,7 @@ Examples: `theme.ts`, `utils.ts`, `tabScreenLayout.ts`, `chatListPreview.ts`, `m
 
 ### Optional next passes
 
-- [ ] Route **`addMessage` / `setChats`** through named functions in `chatStore.ts` (same behavior, clearer swap for Convex).  
+- [ ] Route **`addMessage` / `setChats`** through named functions in `chatStore.ts` (same behavior, clearer swap for the real data layer).  
 - [ ] Re-export remaining-only types (**`GroupMember`**, etc.) from `lib/mocks` so **zero** `constants` imports in `app/`.  
 - [ ] **`ChatContext`**: lazy-init with `await loadInitialChats()` only if you introduce suspense / loading gate (avoid empty first paint).  
 - [ ] Grep occasionally: `MOCK_`, `mockChats`, `mockContacts` outside `constants/` + `lib/mocks/`.
@@ -182,13 +183,13 @@ Examples: `theme.ts`, `utils.ts`, `tabScreenLayout.ts`, `chatListPreview.ts`, `m
 
 ## 8. Target sync & policy (preview)
 
-**Status:** Not implemented in code yet — canonical detail also lives in the Cursor plan (`Codebase recommendations` / Final architecture). This section exists so **Convex + SQLite** work does not drift.
+**Status:** Not implemented in code yet — canonical detail also lives in the Cursor plan (`Codebase recommendations` / Final architecture). This section exists so **Postgres (Neon) + PowerSync + SQLite** work does not drift.
 
 ### 8.1 Composite cursor comparator (no drift)
 
 Messages are ordered by **`(serverCreatedAt, serverMessageId)`** as a **lexicographic pair** (both from the server after ack). **Never** paginate on `serverCreatedAt` alone.
 
-**Definitions:** `serverCreatedAt` is a comparable scalar (e.g. epoch ms). `serverMessageId` is a stable string (e.g. Convex `_id`) used only as a **tie-breaker** when timestamps collide.
+**Definitions:** `serverCreatedAt` is a comparable scalar (e.g. epoch ms). `serverMessageId` is a stable string (e.g. Postgres **primary key** or UUID as string) used only as a **tie-breaker** when timestamps collide.
 
 **“Strictly newer” than bound** `(B_ts, B_id)` — used for delta sync “after `latestSyncedCursor`”:
 
@@ -215,11 +216,11 @@ OLDER(A_ts, A_id)  :=  (A_ts < B_ts)  OR  (A_ts === B_ts AND A_id < B_id)
 
 **Tuple shorthand (same rule):** write **`(ts₁, id₁) > (ts₂, id₂)`** when **`NEWER(ts₁, id₁)`** with bound **`(ts₂, id₂)`** — i.e. lexicographic “greater than” on the pair, **not** `ts₁ > ts₂` alone.
 
-Implement the same comparison in **Convex** (query bounds) and **SQLite** (local merge / dedupe ordering). Use a **compound index** that matches this sort order.
+Implement the same comparison in **Postgres** (query bounds) and **SQLite** (local merge / dedupe ordering). Use a **compound index** that matches this sort order.
 
 **`serverMessageId` tie-break (anti-drift):** When `serverCreatedAt` ties, both sides must compare the second half of the pair **identically** or pagination **skips/duplicates** rows.
 
-**Single shared rule (ship once, reuse everywhere):** treat `serverMessageId` as an opaque string and compare with **plain string ascending order** (one documented rule: e.g. JavaScript **UTF-16 code unit** `localeCompare`, or **byte** `strcmp` on UTF-8 — **pick one** and use **identical** ordering in **Convex**, **SQLite** `COLLATE`, and the **app**). Implement **`compareMessageId(a, b) -> -1 | 0 | 1`** once; add tests for two rows with **equal** `serverCreatedAt` and **different** ids. Never mix collations across layers.
+**Single shared rule (ship once, reuse everywhere):** treat `serverMessageId` as an opaque string and compare with **plain string ascending order** (one documented rule: e.g. JavaScript **UTF-16 code unit** `localeCompare`, or **byte** `strcmp` on UTF-8 — **pick one** and use **identical** ordering in **Postgres**, **SQLite** `COLLATE`, and the **app**). Implement **`compareMessageId(a, b) -> -1 | 0 | 1`** once; add tests for two rows with **equal** `serverCreatedAt` and **different** ids. Never mix collations across layers.
 
 ### 8.2 Remote config defaults — channel daily ad caps (exact integers)
 
@@ -242,7 +243,7 @@ Slot rules (**1 ad / 12** organic posts Free, **1 / 25** Plus) stay as documente
 
 ### 8.3 Entitlement grace — single UX rule (10 minutes)
 
-**Trigger:** RevenueCat / Convex cannot confirm an **active** entitlement for the user’s tier (network error, billing lapse, webhook delay, etc.).
+**Trigger:** RevenueCat / the **server** (billing webhook + DB) cannot confirm an **active** entitlement for the user’s tier (network error, billing lapse, webhook delay, etc.).
 
 **Banner copy (keep in sync with allow/block lists below):**
 
@@ -251,7 +252,7 @@ Slot rules (**1 ad / 12** organic posts Free, **1 / 25** Plus) stay as documente
 | **Grace** | **0–10 minutes** after first failed verification in a session | *“We can’t verify your subscription. You can keep reading chats and messaging on Free limits while we retry (up to 10 minutes).”* — persistent slim bar; optional **“syncing billing…”** on upgrade / paywall entry points. |
 | **Hard block** | **After 10 minutes** still unverified | *“We couldn’t confirm your subscription. Renew to restore paid features.”* |
 
-**Allow / block — single source (product, Convex, QA):**
+**Allow / block — single source (product, **server** / Postgres rules, QA):**
 
 **During 0–10 min grace — allowed**
 
@@ -260,7 +261,7 @@ Slot rules (**1 ad / 12** organic posts Free, **1 / 25** Plus) stay as documente
 - Open **subscription / billing / manage** screens (restore, manage plan).  
 - Normal navigation that does not require a **paid-only** mutation.  
 
-**During grace — blocked (Convex + UI)** — same **paid** surface rules as hard block (calls, paid uploads, paid-only writes, new IAP); only **Free-tier** sends/reads stay open so behavior matches the grace banner.  
+**During grace — blocked (server + UI)** — same **paid** surface rules as hard block (calls, paid uploads, paid-only writes, new IAP); only **Free-tier** sends/reads stay open so behavior matches the grace banner.  
 
 **After 10 min hard block — allowed**
 
@@ -276,11 +277,11 @@ Slot rules (**1 ad / 12** organic posts Free, **1 / 25** Plus) stay as documente
 - **Paid-only** actions (posts, features, rooms gated to Plus/Pro).  
 - **New** in-app **purchases** until billing is healthy again.  
 
-**Convex:** reject mutations in the **blocked** rows; mirror the same rules in the client so QA sees one spec (**this list**).
+**Server:** reject mutations in the **blocked** rows; mirror the same rules in the client so QA sees one spec (**this list**).
 
-**Engineering:** one clock source (e.g. `entitlementDegradedAt` from first failure); reset grace when RevenueCat + Convex agree again.
+**Engineering:** one clock source (e.g. `entitlementDegradedAt` from first failure); reset grace when RevenueCat + the **server/DB** agree on entitlement again.
 
-**Alternate (if product restores “full paid during grace”):** replace the grace **allowed** bullets and **banner** together so copy never promises more than Convex allows — do not split “marketing grace” from “server grace.”
+**Alternate (if product restores “full paid during grace”):** replace the grace **allowed** bullets and **banner** together so copy never promises more than the **server** enforces — do not split “marketing grace” from “server grace.”
 
 ### 8.4 Known limitations (v1)
 
@@ -290,12 +291,12 @@ Slot rules (**1 ad / 12** organic posts Free, **1 / 25** Plus) stay as documente
 
 ### 8.5 Phase 1 acceptance checklist (sync, dedupe, pagination, retry, force-resync)
 
-Use this for **QA** when the SQLite + Convex sync layer lands.
+Use this for **QA** when the **PowerSync (or equivalent) + SQLite** sync layer lands.
 
 - [ ] **Cold open thread:** UI renders **last known messages from SQLite** without waiting on network; spinner optional for delta.  
 - [ ] **Delta fetch:** Only rows **strictly newer** than `latestSyncedCursor` per **§8.1** comparator; **no duplicates** when many messages share one timestamp.  
 - [ ] **Older pagination:** Scrolling up exhausts **local** rows first; **one** server page only when `hasMoreRemoteOlder` and local floor reached; uses **`OLDER`** comparator vs `oldestLocalCursor`.  
-- [ ] **Dedupe:** Two taps “send” with same `clientMessageId` → **one** Convex row; retry after timeout returns same server message.  
+- [ ] **Dedupe:** Two taps “send” with same `clientMessageId` → **one** persisted row in **Postgres**; retry after timeout returns same server message.  
 - [ ] **Pending → committed:** Local pending row **replaced** by server row on ack, order re-anchored to `serverCreatedAt` / `serverMessageId`.  
 - [ ] **Retry queue:** Failed send enters backoff + jitter; manual retry works; cap at **failed** with visible state.  
 - [ ] **`forceResync` (single chat):** Clears **only** that chat’s local message slice (or marks stale), refetches by **cursor windows**, UI matches server after merge.  
@@ -316,7 +317,7 @@ Use this for **QA** when the SQLite + Convex sync layer lands.
 1. **§6 optional passes** — named mutators in `chatStore`, re-export stray types, loading pattern if you go async init.  
 2. **Keep `SYSTEM.md` in sync** — new routes/providers: update §4 or §7 in the same PR when practical.  
 3. **Product polish (optional)** — Tab bar refinement; horizontal swipe between tabs (watch gesture vs. lists).  
-4. **Later phase (explicit product decision)** — `(auth)` UI mock; Convex + Clerk; real media/call backends.
+4. **Later phase (explicit product decision)** — `(auth)` UI mock; **Neon + PowerSync + Drizzle + Clerk**; real media/call backends.
 
 ### Rules to keep
 

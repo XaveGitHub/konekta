@@ -148,7 +148,7 @@ export default function AccountSettingsScreen() {
 
         <View className="mb-10 mt-6 px-8 opacity-40">
           <Text className="text-center text-[12px] font-inter-medium leading-5 text-muted-foreground lowercase">
-            changes here will sync with your clerk identity and convex database records.
+            changes here will sync with your clerk identity and neon (postgres) profile records.
           </Text>
         </View>
       </ScrollView>

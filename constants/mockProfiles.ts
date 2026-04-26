@@ -2,7 +2,7 @@ import { CURRENT_USER_ID } from "@/constants/mockChats";
 
 export type SubscriptionTier = "free" | "plus" | "pro";
 
-/** Public user card — mock until Clerk + Convex. */
+/** Public user card — mock until Clerk + Neon/Postgres. */
 export type UserProfile = {
   id: string;
   displayName: string;
