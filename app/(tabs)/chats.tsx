@@ -59,6 +59,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { ChatAdItem } from "@/components/chat/ChatAdItem";
+import { MOCK_ADS, AD_CAPS, AD_INTERVALS } from "@/lib/mocks/adStore";
 
 type ChatFilter =
   | "all"
@@ -150,6 +152,13 @@ export default function ChatsScreen() {
     handleDelete,
     handleArchive,
     handleToggleReadStatus,
+    acceptMessageRequest,
+    declineMessageRequest,
+    currentUserProfile,
+    adImpressionsToday,
+    incrementAdImpression,
+    adDismissedUntil,
+    dismissAd,
   } = useChat();
 
   const fabBottomSv = useSharedValue(tabScreenFabBottom(insets));
@@ -296,6 +305,28 @@ export default function ChatsScreen() {
 
     return result;
   }, [chats, archivedChatIds, activeFilter]);
+
+  const listData = useMemo(() => {
+    if (activeFilter !== "all" && activeFilter !== "channels") return filteredChats;
+
+    const tier = currentUserProfile.subscriptionTier || "free";
+    const interval = AD_INTERVALS[tier];
+    const cap = AD_CAPS[tier];
+
+    const isAdDismissed = Date.now() < adDismissedUntil;
+
+    if (tier === "pro" || adImpressionsToday >= cap || isAdDismissed) return filteredChats;
+
+    const items: (any)[] = [];
+    filteredChats.forEach((chat, index) => {
+      items.push(chat);
+      // Inject ONLY at the 3rd position (index 2)
+      if (index === 1 && filteredChats.length >= 2) {
+        items.push(MOCK_ADS[0]);
+      }
+    });
+    return items;
+  }, [filteredChats, activeFilter, currentUserProfile.subscriptionTier, adImpressionsToday, adDismissedUntil]);
 
   const handleToggleReadStatusAction = () => {
     handleToggleReadStatus(isEverySelectedRead);
@@ -526,7 +557,7 @@ export default function ChatsScreen() {
 
       <FlatList
         style={{ flex: 1 }}
-        data={filteredChats}
+        data={listData}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
@@ -599,6 +630,20 @@ export default function ChatsScreen() {
         }
         ItemSeparatorComponent={() => <View className="h-0" />}
         renderItem={({ item }) => {
+          if ('type' in item && item.type === 'ad') {
+            return (
+              <View onLayout={() => incrementAdImpression()}>
+                <ChatAdItem
+                  id={item.id}
+                  title={item.title}
+                  description={item.description}
+                  imageUrl={item.imageUrl}
+                  linkUrl={item.linkUrl}
+                  onClose={() => dismissAd(20 * 60 * 1000)}
+                />
+              </View>
+            );
+          }
           return (
             <ChatListItem
               chat={item}

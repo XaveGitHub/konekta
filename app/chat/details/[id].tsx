@@ -222,7 +222,7 @@ export default function ChatDetailsScreen() {
       showToast({ message: toastMessage, icon });
     }
 
-    router.back();
+    router.replace("/(tabs)/chats");
   };
 
   const handleCallAction = (type: "audio" | "video") => {
@@ -715,16 +715,6 @@ export default function ChatDetailsScreen() {
                       "This group has no public description."}
                   </Text>
                 )}
-                {chat.username && (
-                  <View className="mt-5 pt-5 border-t border-border/5 flex-row items-center justify-between">
-                    <Text className="text-sm font-inter-medium lowercase tracking-tight text-muted-foreground opacity-70">
-                      group id
-                    </Text>
-                    <Text className="text-sm font-inter-medium text-primary">
-                      {chat.username}
-                    </Text>
-                  </View>
-                )}
               </View>
             </ProCard>
           </>
@@ -988,16 +978,6 @@ export default function ChatDetailsScreen() {
           <Ionicons name="chevron-back" size={24} color="white" />
         </Pressable>
         <View className="flex-1" />
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setIsInfoOverflowOpen(true);
-          }}
-          accessibilityLabel="More options"
-          className="rounded-full border border-white/20 bg-black/25 p-2.5 backdrop-blur-2xl active:bg-black/40"
-        >
-          <MoreVertical size={20} color="white" />
-        </Pressable>
       </View>
 
       {/* Overlays */}
@@ -1030,17 +1010,6 @@ export default function ChatDetailsScreen() {
         isAdmin={isAdmin}
         isChannel={isChannel}
         onAction={handleMemberAction}
-      />
-      <ChatInfoOverflowSheet
-        open={isInfoOverflowOpen}
-        onClose={() => setIsInfoOverflowOpen(false)}
-        variant={overflowVariant}
-        title={chat.title}
-        chatId={chat.id}
-        groupInviteCode={chat.groupInviteCode}
-        username={chat.username}
-        onOpenMuteSheet={() => setIsMuteSheetOpen(true)}
-        showToast={(c) => showToast(c)}
       />
 
       {removeMemberPending && (

@@ -8,7 +8,7 @@ export function isChannelComposerReadOnly(chat: Chat | undefined): boolean {
 }
 
 export function channelComposerLockMessage(): string {
-  return 'Only channel admins can post here. This is an announce channel (mock).';
+  return 'this is a read-only broadcast channel';
 }
 
 export function formatChannelSubscribers(n: number | undefined): string {

@@ -58,6 +58,8 @@ import {
 } from "@/components/ui/dialog";
 import Toast from "@/components/ui/Toast";
 import { useColorScheme } from "nativewind";
+import { ChatAdItem } from "@/components/chat/ChatAdItem";
+import { MOCK_ADS, AD_CAPS, AD_INTERVALS } from "@/lib/mocks/adStore";
 
 function MessageRequestOverlay({
   isGroup,
@@ -215,6 +217,10 @@ export default function ChatDetailScreen() {
     isDeleteDialogOpen,
     handleDelete,
     currentUserProfile,
+    adImpressionsToday,
+    incrementAdImpression,
+    dismissAd,
+    adDismissedUntil,
   } = useChat();
   const { colorScheme } = useColorScheme();
   const isKonektaPlus = currentUserProfile.subscriptionTier === "plus";
@@ -406,10 +412,29 @@ export default function ChatDetailScreen() {
 
   const messages = useMemo(() => {
     if (!id) return [];
-    return [...(messagesByChatId[id] || [])].sort(
+    const base = [...(messagesByChatId[id] || [])].sort(
       (a, b) => b.fullTimestamp - a.fullTimestamp,
     );
-  }, [id, messagesByChatId]);
+
+    if (!chat?.isChannel) return base;
+
+    const tier = currentUserProfile.subscriptionTier || "free";
+    const interval = AD_INTERVALS[tier];
+    const cap = AD_CAPS[tier];
+    const isAdDismissed = Date.now() < adDismissedUntil;
+
+    if (tier === "pro" || adImpressionsToday >= cap || isAdDismissed) return base;
+
+    const items: (any)[] = [];
+    base.forEach((msg, index) => {
+      items.push(msg);
+      if ((index + 1) % interval === 0) {
+        const adIndex = (Math.floor((index + 1) / interval) - 1) % MOCK_ADS.length;
+        items.push({ ...MOCK_ADS[adIndex], id: `ad-${MOCK_ADS[adIndex].id}-${index}`, isAd: true });
+      }
+    });
+    return items;
+  }, [id, messagesByChatId, chat, currentUserProfile.subscriptionTier, adImpressionsToday, adDismissedUntil]);
 
   useEffect(() => {
     // Platform-specific keyboard triggers
@@ -487,18 +512,37 @@ export default function ChatDetailScreen() {
   );
 
   const renderMessage = useCallback(
-    ({ item, index }: ListRenderItemInfo<Message>) => {
+    ({ item, index }: ListRenderItemInfo<any>) => {
+      if (item.isAd) {
+        return (
+          <View onLayout={() => incrementAdImpression()} className="my-4 px-4">
+             <ChatAdItem
+                id={item.id}
+                title={item.title}
+                description={item.description}
+                imageUrl={item.imageUrl}
+                linkUrl={item.linkUrl}
+                onClose={() => dismissAd(20 * 60 * 1000)}
+             />
+          </View>
+        );
+      }
+
+      // Filter out ads from the neighbor check to avoid breaking clusters
+      const prevMsg = messages[index - 1]?.isAd ? null : messages[index - 1];
+      const nextMsg = messages[index + 1]?.isAd ? null : messages[index + 1];
+
       const isLastInCluster =
         index === 0 ||
-        messages[index - 1].senderId !== item.senderId ||
-        messages[index - 1].date !== item.date;
+        prevMsg?.senderId !== item.senderId ||
+        prevMsg?.date !== item.date;
       const isFirstInCluster =
         index === messages.length - 1 ||
-        messages[index + 1].senderId !== item.senderId ||
-        messages[index + 1].date !== item.date;
+        nextMsg?.senderId !== item.senderId ||
+        nextMsg?.date !== item.date;
 
       const showDateDivider =
-        index === messages.length - 1 || messages[index + 1].date !== item.date;
+        index === messages.length - 1 || nextMsg?.date !== item.date;
       const marginTop = showDateDivider ? 0 : isFirstInCluster ? 10 : 2;
 
       const groupIncoming =
@@ -586,7 +630,7 @@ export default function ChatDetailScreen() {
             onLayout={onComposerStackLayout}
             className="absolute bottom-0 left-0 right-0 z-50 bg-transparent"
             style={{
-              elevation: 6,
+              // elevation: 6,
               // Strictly mathematically identical to Tab Bar spacing (e.g. insets.bottom - 12)
               paddingBottom: isKeyboardVisible 
                 ? 0 

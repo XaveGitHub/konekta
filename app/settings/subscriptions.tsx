@@ -57,6 +57,7 @@ export default function SubscriptionsSettingsScreen() {
       cycle: "/ month",
       details: billingCycle === 'annual' ? "billed annually ($29.88)" : "billed monthly",
       features: [
+        "reduced ads (1 per 25 items)",
         "enhanced custom status",
         "2gb file upload limit",
         "premium profile badges",
@@ -71,6 +72,7 @@ export default function SubscriptionsSettingsScreen() {
       cycle: "/ month",
       details: billingCycle === 'annual' ? "billed annually ($95.88)" : "billed monthly",
       features: [
+        "completely ad-free experience",
         "everything in plus",
         "unlimited channels & broadcasts",
         "10gb cloud vault storage",

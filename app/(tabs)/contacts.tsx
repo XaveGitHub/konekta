@@ -21,6 +21,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { safePush } from "@/lib/safeNavigation";
 import { MessageCircle, Phone, X, UserPlus } from "lucide-react-native";
+import { ChatAdItem } from "@/components/chat/ChatAdItem";
+import { MOCK_ADS, AD_CAPS } from "@/lib/mocks/adStore";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import Animated, {
@@ -219,7 +221,7 @@ FriendRow.displayName = "FriendRow";
 // --- Main Screen ---
 export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
-  const { showToast, toast } = useChat();
+  const { showToast, toast, currentUserProfile, adImpressionsToday, incrementAdImpression, dismissAd, adDismissedUntil } = useChat();
   const { contacts, addContact } = useContacts();
 
   const openContactPrimary = (c: Contact) => {
@@ -297,6 +299,26 @@ export default function ContactsScreen() {
     return list;
   }, [query, contacts]);
 
+  const listData = useMemo(() => {
+    if (query.trim()) return filteredContacts;
+
+    const tier = currentUserProfile.subscriptionTier || "free";
+    const cap = AD_CAPS[tier];
+    const isAdDismissed = Date.now() < adDismissedUntil;
+
+    if (tier === "pro" || adImpressionsToday >= cap || isAdDismissed) return filteredContacts;
+
+    const items: (any)[] = [];
+    filteredContacts.forEach((contact, index) => {
+      items.push(contact);
+      // Inject at the 5th position
+      if (index === 3 && filteredContacts.length >= 4) {
+        items.push(MOCK_ADS[2]);
+      }
+    });
+    return items;
+  }, [filteredContacts, query, currentUserProfile.subscriptionTier, adImpressionsToday, adDismissedUntil]);
+
   useFocusEffect(
     useCallback(() => {
       resetScrollFab();
@@ -334,7 +356,7 @@ export default function ContactsScreen() {
 
       <FlatList
         style={{ flex: 1 }}
-        data={filteredContacts}
+        data={listData}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -425,13 +447,29 @@ export default function ContactsScreen() {
             ) : null
         }
 
-        renderItem={({ item }) => (
-          <FriendRow
-            contact={item}
-            onOpenPrimary={openContactPrimary}
-            onOpenChat={openContactChat}
-          />
-        )}
+        renderItem={({ item }) => {
+          if ('type' in item && item.type === 'ad') {
+            return (
+              <View onLayout={() => incrementAdImpression()} className="py-2">
+                <ChatAdItem
+                  id={item.id}
+                  title={item.title}
+                  description={item.description}
+                  imageUrl={item.imageUrl}
+                  linkUrl={item.linkUrl}
+                  onClose={() => dismissAd(20 * 60 * 1000)}
+                />
+              </View>
+            );
+          }
+          return (
+            <FriendRow
+              contact={item}
+              onOpenPrimary={openContactPrimary}
+              onOpenChat={openContactChat}
+            />
+          );
+        }}
         ListEmptyComponent={() => (
           <Animated.View entering={FadeIn} className="items-center py-24 px-8">
             <Text className="text-5xl mb-4">🔍</Text>

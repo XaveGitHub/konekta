@@ -58,6 +58,10 @@ type ChatContextType = {
   setToast: React.Dispatch<
     React.SetStateAction<(ToastConfig & { id: number }) | null>
   >;
+  adImpressionsToday: number;
+  incrementAdImpression: () => void;
+  adDismissedUntil: number;
+  dismissAd: (durationMs: number) => void;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -83,6 +87,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [archivedChatIds, setArchivedChatIds] = useState<Set<string>>(
     new Set(),
   );
+  const [adImpressionsToday, setAdImpressionsToday] = useState(0);
+  const [adDismissedUntil, setAdDismissedUntil] = useState(0);
 
   const pendingDeleteRef = useRef<string[]>([]);
   const toastIdRef = useRef(0);
@@ -470,6 +476,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     showToast({ message: role === 'admin' ? `Promoted ${memberName}` : `Demoted ${memberName}`, icon: Check });
   }, [addMessage, showToast]);
 
+  const incrementAdImpression = useCallback(() => {
+    setAdImpressionsToday((prev) => prev + 1);
+  }, []);
+
+  const dismissAd = useCallback((durationMs: number) => {
+    setAdDismissedUntil(Date.now() + durationMs);
+    showToast({
+      message: "ad hidden for 20m · go pro to remove all ads",
+      icon: X,
+    });
+  }, [showToast]);
+
   const value = {
     currentUserProfile,
     updateCurrentUserProfile,
@@ -502,6 +520,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     addMessage,
     setMessagesByChatId,
     setToast,
+    adImpressionsToday,
+    incrementAdImpression,
+    adDismissedUntil,
+    dismissAd,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

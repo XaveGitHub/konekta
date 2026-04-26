@@ -323,15 +323,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     return (
       <View>
         <View
-          style={{ paddingBottom: bottomPadding, paddingHorizontal: 12 }}
+          style={{ paddingBottom: bottomPadding, paddingHorizontal: 16 }}
           className="bg-transparent pt-2"
         >
           <View
-            className="rounded-3xl border border-border/50 bg-muted/25 px-4 py-3.5"
+            className="flex-row items-center justify-center gap-3 rounded-2xl border border-border/40 bg-muted/30 px-6 py-3.5"
             accessibilityRole="text"
             accessibilityLabel={composerReadOnlyMessage}
           >
-            <Text className="text-center text-[15px] leading-5 text-muted-foreground">
+            <Ionicons name="megaphone-outline" size={18} color={accent} style={{ opacity: 0.8 }} />
+            <Text className="text-center text-[14px] font-inter-semibold text-muted-foreground/80 lowercase">
               {composerReadOnlyMessage}
             </Text>
           </View>

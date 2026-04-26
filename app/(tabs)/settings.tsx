@@ -23,9 +23,11 @@ import { useChat } from "@/context/ChatContext";
 import { THEME } from "@/lib/theme";
 import { MenuRow } from "@/components/ui/MenuRow";
 import { safePush } from "@/lib/safeNavigation";
+import { ChatAdItem } from "@/components/chat/ChatAdItem";
+import { MOCK_ADS, AD_CAPS } from "@/lib/mocks/adStore";
 
 export default function SettingsScreen() {
-  const { currentUserProfile } = useChat();
+  const { currentUserProfile, adImpressionsToday, incrementAdImpression, dismissAd, adDismissedUntil } = useChat();
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -161,6 +163,19 @@ export default function SettingsScreen() {
             onPress={() => safePush("/settings/notifications")}
           />
         </View>
+
+        {currentUserProfile.subscriptionTier !== "pro" && Date.now() > adDismissedUntil && adImpressionsToday < AD_CAPS[currentUserProfile.subscriptionTier || 'free'] && (
+          <View onLayout={() => incrementAdImpression()} className="mb-5">
+            <ChatAdItem
+              id={MOCK_ADS[1].id}
+              title={MOCK_ADS[1].title}
+              description={MOCK_ADS[1].description}
+              imageUrl={MOCK_ADS[1].imageUrl}
+              linkUrl={MOCK_ADS[1].linkUrl}
+              onClose={() => dismissAd(20 * 60 * 1000)}
+            />
+          </View>
+        )}
 
         <View className="mx-4 mb-5 overflow-hidden rounded-3xl border border-border/25 bg-card">
           <MenuRow
