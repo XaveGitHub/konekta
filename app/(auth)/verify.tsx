@@ -5,8 +5,8 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import { Button } from '../../components/ui/button';
-import { setOnboarded, setLoggedIn } from '../../lib/auth-mock';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +33,11 @@ export default function VerifyScreen() {
     
     setTimeout(async () => {
       setIsLoading(false);
-      setLoggedIn(true);
+      try {
+        await SecureStore.setItemAsync('konekta_mock_token', 'logged_in');
+      } catch (e) {
+        console.log('SecureStore error:', e);
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)/chats');
     }, 1500);
@@ -73,7 +77,6 @@ export default function VerifyScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ paddingTop: insets.top + 20 }} className="px-6 flex-1">
-          {/* System Back Button */}
           <Pressable 
             onPress={() => router.back()}
             className="size-10 items-center justify-center rounded-full bg-muted/20"
@@ -90,7 +93,7 @@ export default function VerifyScreen() {
               verify it's you
             </Text>
             <Text className="mt-2 text-[15px] font-inter-medium text-muted-foreground text-center lowercase opacity-50">
-              code sent to <Text className="text-primary font-inter-semibold">+63 {phone}</Text>
+              code sent to <Text className="text-primary font-inter-semibold">+{phone || '63 000 000 0000'}</Text>
             </Text>
           </View>
 

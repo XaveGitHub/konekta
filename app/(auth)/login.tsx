@@ -38,7 +38,6 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ paddingTop: insets.top + 20 }} className="px-6 flex-1">
-          {/* System Back Button */}
           <Pressable 
             onPress={() => router.back()}
             className="size-10 items-center justify-center rounded-full bg-muted/20"
